@@ -1,0 +1,19 @@
+name: CI
+#
+# ⚠️ 잡 이름 `ci` 를 바꾸지 마라. 검사 이름이 `{호출잡}/{피호출잡}` 이 되므로
+# (실측: coolbress/standards CPR-007), 이 이름이 룰셋의 required context
+# `ci / lint`·`ci / typecheck`·`ci / test`·`ci / build` 와 묶여 있다.
+# 바꾸면 요구된 이름이 영원히 보고되지 않아 저장소가 머지 불가로 잠긴다.
+#
+# CI 로직은 여기 없다 — coolbress/workflows 한 곳에 있고 @SHA 로 핀한다.
+# 갱신하려면 아래 SHA 를 올린다.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    uses: coolbress/workflows/.github/workflows/python-ci.yml@b26f2995678dc209350e4715c3cfc21c7539ab38
