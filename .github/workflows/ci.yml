@@ -6,6 +6,8 @@ name: CI
 # 바꾸면 요구된 이름이 영원히 보고되지 않아 저장소가 머지 불가로 잠긴다.
 #
 # CI 로직은 여기 없다 — coolbress/workflows 한 곳에 있고 @SHA 로 핀한다.
+# 핀은 반드시 커밋 SHA 다 (태그는 가변 = 공급망 벡터). 옆의 주석이 그 SHA 의 버전이다 —
+# 무엇이 바뀌는지는 릴리스 노트로 읽는다: github.com/coolbress/workflows/releases
 # 갱신하려면 아래 SHA 를 올린다.
 
 on:
@@ -16,4 +18,4 @@ on:
 
 jobs:
   ci:
-    uses: coolbress/workflows/.github/workflows/python-ci.yml@b26f2995678dc209350e4715c3cfc21c7539ab38
+    uses: coolbress/workflows/.github/workflows/python-ci.yml@b072c863650d080c331865117152e353ff0d2374 # v1.0.0
