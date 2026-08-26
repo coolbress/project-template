@@ -16,6 +16,12 @@ on:
   pull_request:
     branches: [main]
 
+# PR 에 새로 푸시하면 이전 실행을 취소한다 — 낡은 커밋에 러너를 태우지 않는다.
+# main 은 취소하지 않는다: 머지된 커밋의 결과는 전부 남아야 한다.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   ci:
     uses: coolbress/workflows/.github/workflows/python-ci.yml@b072c863650d080c331865117152e353ff0d2374 # v1.0.0
