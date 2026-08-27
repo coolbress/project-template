@@ -24,4 +24,4 @@ concurrency:
 
 jobs:
   ci:
-    uses: coolbress/workflows/.github/workflows/python-ci.yml@72ae2f6729aa8ec290fa018902e9e20624215c88 # v2.0.0
+    uses: coolbress/workflows/.github/workflows/python-ci.yml@a2f5c56862f43c15dc227590163bdb3684592734 # v2.1.0
