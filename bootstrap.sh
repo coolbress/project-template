@@ -8,9 +8,35 @@
 # (감사 §생성 방식 — "이름 치환과 선택지가 몇 개뿐이면 작은 bootstrap adapter 로 끝낸다")
 set -euo pipefail
 
-name="${1:?사용법: ./bootstrap.sh <프로젝트-이름> [SPDX-라이선스]}"
+# --check-name: 이름만 확인하고 끝낸다 (부작용 없음). 시험이 이걸 쓴다.
+check_only=0
+if [ "${1:-}" = "--check-name" ]; then check_only=1; shift; fi
+
+name="${1:?사용법: ./bootstrap.sh [--check-name] <프로젝트-이름> [SPDX-라이선스]}"
 spdx="${2:-MIT}"
-pkg="$(printf '%s' "$name" | tr '[:upper:]-' '[:lower:]_')"   # 패키지는 소문자·언더스코어
+
+# 🔴 저장소 이름과 Python 패키지 이름은 **규칙이 다르다.**
+# GitHub 은 `.` 을 허용하고 숫자로 시작해도 되지만 Python 은 아니다.
+# 이전 판은 대문자와 `-` 만 바꿨다 — `my.app` 이 `src/my.app` 이 되어
+# bootstrap 은 "완료" 라고 말하고 **pytest 가 나중에 실패**했다.
+# 조용히 망가지는 것이 가장 나쁘다. 바꿀 수 있으면 바꾸고, 못 바꾸면 **여기서 멈춘다.**
+pkg="$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]' | tr '.- ' '___')"
+python3 - "$pkg" "$name" <<'CHECK'
+import keyword, re, sys
+pkg, name = sys.argv[1], sys.argv[2]
+if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", pkg) or keyword.iskeyword(pkg):
+    why = ("숫자로 시작한다" if pkg[:1].isdigit()
+           else "파이썬 예약어다" if keyword.iskeyword(pkg)
+           else "식별자에 쓸 수 없는 문자가 있다")
+    sys.exit(
+        f"🔴 저장소 이름 '{name}' 에서 Python 패키지 이름을 못 만든다: '{pkg}' 는 {why}.\n"
+        f"   저장소 이름은 GitHub 규칙을 따르지만 패키지 이름은 Python 식별자여야 한다.\n"
+        f"   저장소 이름을 바꾸거나, src/ 와 pyproject.toml 의 name 을 손으로 정한 뒤 다시 돌려라."
+    )
+CHECK
+
+if [ "$check_only" = 1 ]; then echo "$pkg"; exit 0; fi
+
 [ -d src/app ] || { echo "이미 bootstrap 된 것 같다 (src/app 이 없다)" >&2; exit 1; }
 
 git mv src/app "src/$pkg"
