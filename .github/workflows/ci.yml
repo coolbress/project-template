@@ -29,3 +29,13 @@ concurrency:
 jobs:
   ci:
     uses: coolbress/workflows/.github/workflows/python-ci.yml@21dd3b1a0f92e8b1a3640a15564a517a03d5881e # v3.2.0
+    with:
+      # 🔴 여기만 기본값을 늘린다. 기본 제외는 `*.md`·`*.lock` 인데 이 저장소에는
+      # `README.md.jinja`·`uv.lock.jinja` 가 있다 — **`.jinja` 는 렌더 지시이지 새 종류의 파일이 아니다.**
+      #
+      # 🔬 이걸 안 넣으면 무슨 일이 나나 (2026-08-28 실측): `uv.lock` → `uv.lock.jinja` 로
+      # 이름을 바꿨더니 diff 가 258줄에서 **676줄**로 뛰었다. git 은 pathspec 이 옛 경로를
+      # 가리면 그 짝을 **이름 변경으로 못 보고 순수 추가로 센다.** 락파일 1줄 고친 것이
+      # 418줄로 계산된 것이다 — **규칙이 틀린 게 아니라 계량기가 틀렸다.**
+      diff-size-exclude: "*.md *.md.jinja *.lock *.lock.jinja *lock.json *lock.yaml *lock.yml LICENSE"
+
