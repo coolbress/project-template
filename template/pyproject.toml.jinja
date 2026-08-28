@@ -1,20 +1,19 @@
 [project]
-name = "app"
+name = "{{ package_name }}"
 version = "0.1.0"
 description = "설명을 여기에 쓴다"
 readme = "README.md"
 requires-python = ">=3.12"
-license = "MIT"
+license = "{{ license }}"
 license-files = ["LICENSE"]
 authors = [{ name = "coolbress" }]
 dependencies = []
 
 # 배포 메타데이터. 패키지를 올리지 않더라도 값을 한다 —
 # `pip show` · GitHub · 의존성 그래프가 여기를 읽는다.
-# bootstrap.sh 가 이름과 라이선스를 실제 값으로 바꾼다.
 [project.urls]
-Homepage = "https://github.com/coolbress/app"
-Issues = "https://github.com/coolbress/app/issues"
+Homepage = "https://github.com/coolbress/{{ project_name }}"
+Issues = "https://github.com/coolbress/{{ project_name }}/issues"
 
 [build-system]
 requires = ["hatchling"]

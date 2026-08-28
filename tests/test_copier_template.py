@@ -18,6 +18,8 @@
 
 from __future__ import annotations
 
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -99,3 +101,82 @@ def test_service_archetype_includes_them(tmp_path: Path) -> None:
 def test_floor_documents_are_present(rendered: Path) -> None:
     for name in ("AGENTS.md", "CONTRIBUTING.md", "CHANGELOG.md", "SECURITY.md", "LICENSE"):
         assert (rendered / name).is_file(), f"{name} 이 인스턴스에 없다 (바닥의 문서 묶음)"
+
+
+# ── 이름 치환 (`bootstrap.sh` 가 하던 일) ────────────────────
+
+
+def test_repository_name_becomes_a_python_package_name(tmp_path: Path) -> None:
+    """`my.app` → `my_app`. 저장소 이름과 패키지 이름은 **규칙이 다르다.**
+
+    옛 `bootstrap.sh` 의 첫 판은 대문자와 `-` 만 바꿨고, `my.app` 이 `src/my.app` 이 되어
+    스크립트는 "완료" 라고 말하고 **pytest 가 나중에 실패**했다. 그 사건이 이 시험이다.
+    """
+    out = render(tmp_path / "dotted", project_name="my.app")
+    assert (out / "src" / "my_app" / "__init__.py").is_file()
+    assert (out / "tests" / "test_my_app.py").is_file()
+    assert "from my_app import" in (out / "tests" / "test_my_app.py").read_text(encoding="utf-8")
+    assert 'name = "my_app"' in (out / "pyproject.toml").read_text(encoding="utf-8")
+    # 🔴 저장소 이름은 그대로 쓴다 — URL 은 GitHub 것이지 파이썬 것이 아니다.
+    assert "coolbress/my.app" in (out / "pyproject.toml").read_text(encoding="utf-8")
+
+
+def test_license_answer_reaches_pyproject(tmp_path: Path) -> None:
+    out = render(tmp_path / "apache", license="Apache-2.0")
+    assert 'license = "Apache-2.0"' in (out / "pyproject.toml").read_text(encoding="utf-8")
+
+
+def test_lockfile_carries_the_package_name(tmp_path: Path) -> None:
+    """`uv.lock` 도 프로젝트 이름을 담는다.
+
+    어긋나면 CI 의 `uv sync --locked` 가 **새 저장소의 첫 PR 부터** 실패한다.
+    """
+    out = render(tmp_path / "locked", project_name="my.app")
+    assert 'name = "my_app"' in (out / "uv.lock").read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    ("bad", "why"),
+    [
+        ("9lives", "숫자로 시작한다"),
+        ("class", "파이썬 예약어다"),
+        ("my+app", "식별자에 쓸 수 없는 문자가 있다"),
+    ],
+)
+def test_impossible_names_are_refused_before_anything_is_written(
+    tmp_path: Path, bad: str, why: str
+) -> None:
+    """🔴 **파일을 만들기 전에** 멈춘다 — 그게 jinja 가 `bootstrap.sh` 보다 나은 지점이다.
+
+    옛 판은 `git mv` 로 파일을 만든 **뒤에** 고쳤으므로, 틀린 이름은 트리를 반쯤
+    바꿔놓은 뒤에야 걸렸다. 이제는 아무것도 안 만들고 거절한다.
+    """
+    dest = tmp_path / "bad"
+    with pytest.raises(Exception):  # noqa: B017,PT011 — copier 가 던지는 타입은 판마다 다르다
+        render(dest, project_name=bad)
+    assert not dest.exists() or not any(dest.iterdir()), f"{bad} 를 거절하고도 파일을 남겼다"
+
+
+# ── 끝에서 끝까지 ────────────────────────────────────────────
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv 가 없다")
+def test_generated_project_passes_its_own_checks(tmp_path: Path) -> None:
+    """🔵 **이 시험이 이 파일에서 제일 값어치가 크다.**
+
+    렌더가 됐다는 것과 **생성된 저장소가 초록이라는 것**은 다른 문장이다. 특히 `uv.lock` 은
+    프로젝트 이름을 담고 있어서, 어긋나면 `uv sync --locked` 가 **새 저장소의 첫 PR 부터**
+    실패한다 — 벽이 서 있는 저장소라 그대로 잠긴다. 여기서 잡지 않으면 거기서 알게 된다.
+    """
+    out = render(tmp_path / "e2e", project_name="my.app")
+    for step in (
+        ["uv", "sync", "--locked", "--quiet"],
+        ["uv", "run", "--quiet", "ruff", "check", "."],
+        ["uv", "run", "--quiet", "ruff", "format", "--check", "."],
+        ["uv", "run", "--quiet", "mypy", "."],
+        ["uv", "run", "--quiet", "pytest", "-q"],
+    ):
+        done = subprocess.run(step, cwd=out, capture_output=True, text=True, check=False)  # noqa: S603
+        assert done.returncode == 0, (
+            f"생성된 프로젝트에서 {' '.join(step)} 가 실패했다\n{done.stdout}\n{done.stderr}"
+        )
