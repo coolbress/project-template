@@ -92,10 +92,26 @@ def test_cli_archetype_omits_service_only_files(rendered: Path) -> None:
     assert not (rendered / "tests" / "test_env_example.py").exists()
 
 
-def test_service_archetype_includes_them(tmp_path: Path) -> None:
-    out = render(tmp_path / "svc", archetype="service")
+@pytest.mark.parametrize("archetype", ["web", "backend", "data-ml"])
+def test_service_archetypes_include_them(tmp_path: Path, archetype: str) -> None:
+    """🔴 값은 **코퍼스가 정한다** (`standards` R5-16 ②ⓑ).
+
+    전판은 `service` 를 썼는데 **코퍼스에 그 값이 없어서** 게이트 걸린 측면 어디에도
+    안 걸렸다. 이 시험이 이제 코퍼스의 종류 축 값으로만 돈다.
+    """
+    out = render(tmp_path / f"svc-{archetype}", archetype=archetype)
     assert (out / ".env.example").is_file()
     assert (out / "tests" / "test_env_example.py").is_file()
+
+
+def test_archetype_choices_are_the_corpus_kind_axis() -> None:
+    """묻는 값이 코퍼스 밖으로 나가면 그 답은 **어떤 게이트에도 안 걸린다.**"""
+    import re
+
+    body = CONFIG.read_text(encoding="utf-8")
+    block = body.split("\narchetype:", 1)[1]
+    offered = set(re.findall(r"^\s{4}[^:\n]+:\s*([a-z][a-z0-9-]*)\s*$", block, re.M))
+    assert offered == {"cli", "library", "web", "backend", "mobile", "data-ml"}, offered
 
 
 def test_floor_documents_are_present(rendered: Path) -> None:
