@@ -1,0 +1,57 @@
+# copier 템플릿 설정.
+#
+# 왜 copier 인가: `gh repo create --template` 은 **시점 복사**라 복사가 끝나면 원본과
+# 연결이 끊긴다. 템플릿을 고쳐도 인스턴스는 그대로다 — 2026-08-28 하루에만
+# *"기존 인스턴스는 자동으로 안 바뀐다"* 를 세 번 적었다(AGENTS.md · CONTRIBUTING 시험 · 이슈 폼).
+# copier 는 인스턴스에 `.copier-answers.yml` 을 남겨 **어느 판에서 태어났는지** 기억하고,
+# `copier update` 로 그 뒤의 템플릿 변경을 **병합**한다.
+#
+# 🔵 **1단계 — copier 는 지금 복사와 추적만 한다.** 이름 치환은 여전히 `bootstrap.sh` 다.
+# 그 스크립트의 이름 도출 검증(`my.app` 이 조용히 망가졌던 사건)은 하드윈이라 통째로
+# 옮기지 않는다. 2단계에서 jinja 로 옮기고 `bootstrap.sh` 를 지운다 (`standards` R5-32).
+
+_min_copier_version: "9.0.0"
+
+# 🔴 `CLAUDE.md` 는 `AGENTS.md` 를 가리키는 **심볼릭 링크**다. 기본값으로 두면 copier 가
+# 링크를 따라가 **사본**을 만들고, 그러면 둘이 갈린다 — 링크로 둔 이유가 그것이다.
+_preserve_symlinks: true
+
+_exclude:
+  - copier.yml
+  - .git
+  - .venv
+  - dist
+  - .mypy_cache
+  - .pytest_cache
+  - .ruff_cache
+  - __pycache__
+  # ── 아키타입 조건부 ────────────────────────────────────────────
+  # 바닥(`standards` direction/05)이 아키타입으로 조건을 건다. 여기가 그 집행부다.
+  # 🔴 파일을 지우는 게 아니라 **애초에 안 만든다** — 스텁이 남지 않는다.
+  - "{% if archetype not in ['service', 'data-ml'] %}.env.example{% endif %}"
+  - "{% if archetype not in ['service', 'data-ml'] %}tests/test_env_example.py{% endif %}"
+
+project_name:
+  type: str
+  help: 저장소 이름 (GitHub 규칙). 예 my-app
+
+license:
+  type: str
+  help: SPDX 라이선스
+  default: MIT
+  choices:
+    MIT: MIT
+    Apache-2.0: Apache-2.0
+
+archetype:
+  type: str
+  help: |
+    이건 어떤 종류인가. 바닥의 조건부 항목이 이 답으로 정해진다
+    (`.env.example`·설정 외부화는 service 맥락이다 — 12-Factor).
+    모르겠으면 가장 좁은 것을 고른다.
+  default: cli
+  choices:
+    CLI: cli
+    라이브러리: library
+    서비스/웹앱: service
+    데이터·ML: data-ml
