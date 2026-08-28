@@ -5,10 +5,6 @@ name: CI
 # `ci / lint`·`ci / typecheck`·`ci / test`·`ci / build` 와 묶여 있다.
 # 바꾸면 요구된 이름이 영원히 보고되지 않아 저장소가 머지 불가로 잠긴다.
 #
-# 🔴 이건 **템플릿 자신의** CI 다. 인스턴스로 나가는 것은 `template/.github/workflows/ci.yml` 이다.
-# 둘이 따로 있는 이유가 `_subdirectory: template` 을 쓴 이유다 — GitHub 은 **루트의**
-# `.github/workflows/` 만 돌리므로, 이 파일은 이 저장소를 검사하고 저 파일은 인스턴스로 간다.
-#
 # CI 로직은 여기 없다 — coolbress/workflows 한 곳에 있고 @SHA 로 핀한다.
 # 핀은 반드시 커밋 SHA 다 (태그는 가변 = 공급망 벡터). 옆의 주석이 그 SHA 의 버전이다 —
 # 무엇이 바뀌는지는 릴리스 노트로 읽는다: github.com/coolbress/workflows/releases
