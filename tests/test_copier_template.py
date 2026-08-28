@@ -23,9 +23,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CONFIG = ROOT / "copier.yml"
 ANSWERS_TEMPLATE = ROOT / "{{ _copier_conf.answers_file }}.jinja"
 
-pytestmark = pytest.mark.skipif(
-    not CONFIG.exists(), reason="copier.yml 은 인스턴스로 안 간다"
-)
+pytestmark = pytest.mark.skipif(not CONFIG.exists(), reason="copier.yml 은 인스턴스로 안 간다")
 
 
 def _config() -> str:
