@@ -103,6 +103,30 @@ def test_floor_documents_are_present(rendered: Path) -> None:
         assert (rendered / name).is_file(), f"{name} 이 인스턴스에 없다 (바닥의 문서 묶음)"
 
 
+def test_release_note_plumbing_ships(rendered: Path) -> None:
+    """라벨 → 분류된 릴리스 노트. 셋 중 하나만 빠져도 노트가 한 덩어리가 된다."""
+    assert (rendered / ".github" / "release.yml").is_file(), "release.yml 이 없다 — 분류가 안 된다"
+    label = rendered / ".github" / "workflows" / "label.yml"
+    assert label.is_file(), "label.yml 이 없다 — 라벨이 안 붙는다"
+    body = label.read_text(encoding="utf-8")
+    assert "pull-requests: write" in body, "라벨을 붙일 권한이 없다"
+    # 🔴 catch-all 이 없으면 라벨 없는 PR 이 노트에서 **조용히 사라진다.**
+    rel = (rendered / ".github" / "release.yml").read_text(encoding="utf-8")
+    assert '"*"' in rel, "release.yml 에 catch-all 이 없다"
+
+
+def test_instance_is_told_not_to_invent_types(rendered: Path) -> None:
+    """🔴 이 규칙은 **읽히는 곳**에 있어야 한다.
+
+    `CONTRIBUTING.md` 를 두 번 가리켰는데 두 번 다 안 읽혔다. 그래서 `AGENTS.md` 에도 둔다.
+    """
+    agents = (rendered / "AGENTS.md").read_text(encoding="utf-8")
+    assert "새 타입을 만들지 마라" in agents, "AGENTS.md 가 타입 규칙을 안 말한다"
+    contributing = (rendered / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    for standard_type in ("feat", "fix", "docs", "refactor", "revert"):
+        assert f"`{standard_type}`" in contributing, f"{standard_type} 가 어휘 목록에 없다"
+
+
 # ── 이름 치환 (`bootstrap.sh` 가 하던 일) ────────────────────
 
 
