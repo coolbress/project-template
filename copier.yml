@@ -38,8 +38,8 @@ _exclude:
   # ── 아키타입 조건부 ────────────────────────────────────────────
   # 바닥(`standards` direction/05)이 아키타입으로 조건을 건다. 여기가 그 집행부다.
   # 🔴 파일을 지우는 게 아니라 **애초에 안 만든다** — 스텁이 남지 않는다.
-  - "{% if archetype not in ['service', 'data-ml'] %}.env.example{% endif %}"
-  - "{% if archetype not in ['service', 'data-ml'] %}tests/test_env_example.py{% endif %}"
+  - "{% if archetype not in ['web', 'backend', 'data-ml'] %}.env.example{% endif %}"
+  - "{% if archetype not in ['web', 'backend', 'data-ml'] %}tests/test_env_example.py{% endif %}"
 
 project_name:
   type: str
@@ -85,15 +85,26 @@ license:
     MIT: MIT
     Apache-2.0: Apache-2.0
 
+# 🔴 값은 **코퍼스가 정한다.** `standards` 의 28측면이 `gated_archetypes` 로 게이트를 걸고,
+# 이 답이 그 게이트에 맞아야 바닥의 아키타입 층이 적용된다.
+#
+# 🔬 2026-08-29 정정 (`standards` R5-16 ②ⓑ): 전판은 **`service`** 를 물었는데 **코퍼스에 그 값이 없다**
+# (코퍼스는 `web`/`backend` 를 쓴다). 그래서 *service* 라고 답하면 **게이트 걸린 측면 어디에도 안 걸렸다** —
+# 층이 답 위에 서 있는데 답이 어휘 밖이었다. `standards` 의 `repo_audit` 이 이제 두 어휘를 대조한다.
+#
+# ⚠️ **조건 축은 여기서 안 묻는다.** `published`·`cloud`·`handles-user-data` 는 종류가 아니라
+# 예/아니오이고 나중에 바뀐다. `handles-user-data` 는 `/kickoff` 가 따로 묻는다.
 archetype:
   type: str
   help: |
-    이건 어떤 종류인가. 바닥의 조건부 항목이 이 답으로 정해진다
-    (`.env.example`·설정 외부화는 service 맥락이다 — 12-Factor).
+    이건 어떤 **종류**인가. 바닥의 조건부 항목이 이 답으로 정해진다
+    (`.env.example`·설정 외부화는 돌아가는 서비스 맥락이다 — 12-Factor).
     모르겠으면 가장 좁은 것을 고른다.
   default: cli
   choices:
     CLI: cli
     라이브러리: library
-    서비스/웹앱: service
+    웹 프론트엔드: web
+    백엔드/API 서비스: backend
+    모바일 앱: mobile
     데이터·ML: data-ml
