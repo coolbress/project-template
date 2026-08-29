@@ -126,8 +126,12 @@ def test_floor_checks_ship_as_tests(rendered: Path) -> None:
     🔴 이 시험이 없으면 검사 파일이 조용히 안 실려도 아무도 모른다. 인스턴스의 `ci / test` 가
     돌려주는 것이 우리가 바닥을 집행하는 방식이므로, **실리는지 자체**가 확인 대상이다.
     """
-    for name in ("test_contributing.py", "test_issue_forms.py", "test_tree_hygiene.py",
-                 "test_session_start.py"):
+    for name in (
+        "test_contributing.py",
+        "test_issue_forms.py",
+        "test_tree_hygiene.py",
+        "test_session_start.py",
+    ):
         assert (rendered / "tests" / name).is_file(), f"tests/{name} 이 인스턴스에 없다"
 
 
