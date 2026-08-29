@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -125,8 +126,26 @@ def test_floor_checks_ship_as_tests(rendered: Path) -> None:
     🔴 이 시험이 없으면 검사 파일이 조용히 안 실려도 아무도 모른다. 인스턴스의 `ci / test` 가
     돌려주는 것이 우리가 바닥을 집행하는 방식이므로, **실리는지 자체**가 확인 대상이다.
     """
-    for name in ("test_contributing.py", "test_issue_forms.py", "test_tree_hygiene.py"):
+    for name in (
+        "test_contributing.py",
+        "test_issue_forms.py",
+        "test_tree_hygiene.py",
+        "test_session_start.py",
+    ):
         assert (rendered / "tests" / name).is_file(), f"tests/{name} 이 인스턴스에 없다"
+
+
+def test_session_start_hook_ships(rendered: Path) -> None:
+    """🔴 훅은 **커밋되는 프로젝트 설정**이라야 clone 하는 모두가 받는다.
+
+    파일이 안 실리면 `divcal` 이 겪은 것과 같은 상태로 돌아간다 —
+    산문 포인터만 있고 아무도 안 따라간다.
+    """
+    settings = rendered / ".claude" / "settings.json"
+    script = rendered / ".claude" / "session-start.sh"
+    assert settings.is_file(), ".claude/settings.json 이 인스턴스에 없다 — 훅이 안 붙는다"
+    assert script.is_file(), ".claude/session-start.sh 가 인스턴스에 없다"
+    assert os.access(script, os.X_OK), "실행 권한이 인스턴스로 안 따라왔다"
 
 
 def test_release_note_plumbing_ships(rendered: Path) -> None:
