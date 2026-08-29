@@ -119,6 +119,16 @@ def test_floor_documents_are_present(rendered: Path) -> None:
         assert (rendered / name).is_file(), f"{name} 이 인스턴스에 없다 (바닥의 문서 묶음)"
 
 
+def test_floor_checks_ship_as_tests(rendered: Path) -> None:
+    """바닥을 **지키는 것**도 같이 가야 한다 — 문서만 가면 `presence` 만 해결된다.
+
+    🔴 이 시험이 없으면 검사 파일이 조용히 안 실려도 아무도 모른다. 인스턴스의 `ci / test` 가
+    돌려주는 것이 우리가 바닥을 집행하는 방식이므로, **실리는지 자체**가 확인 대상이다.
+    """
+    for name in ("test_contributing.py", "test_issue_forms.py", "test_tree_hygiene.py"):
+        assert (rendered / "tests" / name).is_file(), f"tests/{name} 이 인스턴스에 없다"
+
+
 def test_release_note_plumbing_ships(rendered: Path) -> None:
     """라벨 → 분류된 릴리스 노트. 셋 중 하나만 빠져도 노트가 한 덩어리가 된다."""
     assert (rendered / ".github" / "release.yml").is_file(), "release.yml 이 없다 — 분류가 안 된다"
