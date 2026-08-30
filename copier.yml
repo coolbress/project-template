@@ -38,8 +38,8 @@ _exclude:
   # ── 아키타입 조건부 ────────────────────────────────────────────
   # 바닥(`standards` direction/05)이 아키타입으로 조건을 건다. 여기가 그 집행부다.
   # 🔴 파일을 지우는 게 아니라 **애초에 안 만든다** — 스텁이 남지 않는다.
-  - "{% if archetype not in ['web', 'backend', 'data-ml'] %}.env.example{% endif %}"
-  - "{% if archetype not in ['web', 'backend', 'data-ml'] %}tests/test_env_example.py{% endif %}"
+  - "{% if archetype not in ['backend', 'data-ml'] %}.env.example{% endif %}"
+  - "{% if archetype not in ['backend', 'data-ml'] %}tests/test_env_example.py{% endif %}"
 
 project_name:
   type: str
@@ -94,17 +94,26 @@ license:
 #
 # ⚠️ **조건 축은 여기서 안 묻는다.** `published`·`cloud`·`handles-user-data` 는 종류가 아니라
 # 예/아니오이고 나중에 바뀐다. `handles-user-data` 는 `/kickoff` 가 따로 묻는다.
+# 🔴 **이 생성기는 파이썬 패키지를 만든다** — `pyproject.toml`·`hatchling`·`uv.lock`·
+# `src/<pkg>/`·`python-ci.yml`. 그래서 선택지는 **파이썬으로 지을 수 있는 것만** 있다.
+#
+# 2026-08-30 에 둘을 뺐다: **웹 프론트엔드**(JS/TS)와 **모바일 앱**(Swift/Kotlin/Dart).
+# 고를 수는 있는데 나오는 것은 그냥 파이썬 패키지였다 — **질문이 기계가 지킬 수 없는 답을
+# 제시하고 있었다.** 실물 증거: `mobile` 은 바닥의 어느 조건부 항목에도 안 걸렸는데,
+# 그건 빠뜨려서가 아니라 **이 템플릿이 그걸 만들 수 없기 때문**이었다.
+# `new-project.sh --private` 가 *받는 척하지 않고 멈추는* 것과 같은 규율이다.
 archetype:
   type: str
   help: |
     이건 어떤 **종류**인가. 바닥의 조건부 항목이 이 답으로 정해진다
     (`.env.example`·설정 외부화는 돌아가는 서비스 맥락이다 — 12-Factor).
     모르겠으면 가장 좁은 것을 고른다.
+
+    ⚠️ 이 생성기는 **파이썬 패키지**를 만든다. 웹 프론트엔드(JS/TS)나 모바일 앱은
+    여기서 나오지 않는다 — 그건 다른 생성기가 할 일이다.
   default: cli
   choices:
     CLI: cli
     라이브러리: library
-    웹 프론트엔드: web
     백엔드/API 서비스: backend
-    모바일 앱: mobile
     데이터·ML: data-ml
