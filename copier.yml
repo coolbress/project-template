@@ -47,6 +47,10 @@ _exclude:
   - "{% if archetype not in ['backend', 'data-ml'] %}tests/test_dockerfile.py{% endif %}"
   # 진입점도 같이 간다 — `CMD` 가 부르는 모듈이다. 이미지를 안 받는 아키타입엔 쓸 데가 없다.
   - "{% if archetype not in ['backend', 'data-ml'] %}src/{{ package_name }}/__main__.py{% endif %}"
+  # 구조화 로깅 — **세 기둥 중 트리에 사는 하나**. 메트릭·트레이스·SLO 는 out-of-repo 다
+  # (코퍼스 측면 19 의 claim). 여기 넣으면 스텁이 된다.
+  - "{% if archetype not in ['backend', 'data-ml'] %}src/{{ package_name }}/_logging.py{% endif %}"
+  - "{% if archetype not in ['backend', 'data-ml'] %}tests/test_logging.py{% endif %}"
 
 project_name:
   type: str
