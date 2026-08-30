@@ -93,7 +93,7 @@ def test_cli_archetype_omits_service_only_files(rendered: Path) -> None:
     assert not (rendered / "tests" / "test_env_example.py").exists()
 
 
-@pytest.mark.parametrize("archetype", ["web", "backend", "data-ml"])
+@pytest.mark.parametrize("archetype", ["backend", "data-ml"])
 def test_service_archetypes_include_them(tmp_path: Path, archetype: str) -> None:
     """🔴 값은 **코퍼스가 정한다** (`standards` R5-16 ②ⓑ).
 
@@ -105,14 +105,39 @@ def test_service_archetypes_include_them(tmp_path: Path, archetype: str) -> None
     assert (out / "tests" / "test_env_example.py").is_file()
 
 
-def test_archetype_choices_are_the_corpus_kind_axis() -> None:
-    """묻는 값이 코퍼스 밖으로 나가면 그 답은 **어떤 게이트에도 안 걸린다.**"""
+#: 코퍼스 `_schema.md` §3.1 의 **종류 축** — *세상에* 어떤 종류가 있나.
+CORPUS_KIND_AXIS = {"cli", "library", "web", "backend", "mobile", "data-ml"}
+
+#: 그중 **이 생성기가 실제로 만들 수 있는 것.**
+#: 이 템플릿은 파이썬 패키지를 낸다 — `pyproject.toml`·`hatchling`·`uv.lock`·`python-ci.yml`.
+#: `web`(프론트엔드 · JS/TS)과 `mobile`(Swift/Kotlin/Dart)은 **여기서 안 나온다.**
+SERVABLE = {"cli", "library", "backend", "data-ml"}
+
+
+def _offered() -> set[str]:
     import re
 
-    body = CONFIG.read_text(encoding="utf-8")
-    block = body.split("\narchetype:", 1)[1]
-    offered = set(re.findall(r"^\s{4}[^:\n]+:\s*([a-z][a-z0-9-]*)\s*$", block, re.M))
-    assert offered == {"cli", "library", "web", "backend", "mobile", "data-ml"}, offered
+    block = CONFIG.read_text(encoding="utf-8").split("\narchetype:", 1)[1]
+    return set(re.findall(r"^\s{4}[^:\n]+:\s*([a-z][a-z0-9-]*)\s*$", block, re.M))
+
+
+def test_offered_archetypes_stay_inside_the_corpus_axis() -> None:
+    """묻는 값이 코퍼스 밖으로 나가면 그 답은 **어떤 게이트에도 안 걸린다** (R5-16 ②ⓑ)."""
+    assert _offered() <= CORPUS_KIND_AXIS, _offered() - CORPUS_KIND_AXIS
+
+
+def test_we_only_offer_what_we_can_actually_build() -> None:
+    """🔴 **질문이 기계가 지킬 수 없는 답을 제시하면 안 된다** (2026-08-30 · `standards` R5-41).
+
+    `web`·`mobile` 을 고를 수 있었는데 나오는 것은 **그냥 파이썬 패키지**였다.
+    실물 증거: `mobile` 은 바닥의 어느 조건부 항목에도 안 걸렸다 — 빠뜨려서가 아니라
+    **이 생성기가 그걸 만들 수 없기 때문**이다.
+    `new-project.sh --private` 가 *받는 척하지 않고 멈추는* 것과 같은 규율이다.
+
+    ⚠️ **코퍼스는 안 좁힌다.** 코퍼스의 축은 *세상에 어떤 종류가 있나* 이고
+    이 목록은 *우리가 무엇을 만들 수 있나* 다. 둘은 다른 문장이다.
+    """
+    assert _offered() == SERVABLE, _offered()
 
 
 def test_floor_documents_are_present(rendered: Path) -> None:
