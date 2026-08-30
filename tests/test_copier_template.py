@@ -140,6 +140,55 @@ def test_we_only_offer_what_we_can_actually_build() -> None:
     assert _offered() == SERVABLE, _offered()
 
 
+def test_service_archetype_image_actually_builds_and_runs(tmp_path: Path) -> None:
+    """🔴 **이 시험이 `Dockerfile` 을 스텁에서 구분하는 유일한 것이다.**
+
+    파일이 있는지, 형태가 맞는지는 인스턴스의 `test_dockerfile.py` 가 본다.
+    여기서는 **실제로 빌드하고 실제로 돌린다** — 렌더해보지 않으면 템플릿의 버그는
+    인스턴스에서만 보인다(이 저장소가 이번 세션에만 세 번 겪었다).
+
+    ⚠️ **좁게 건너뛴다.** docker 가 없는 개발 기계에서만 건너뛰고, CI 에는 있다 —
+    아래 `test_ci_requires_docker_so_the_skip_cannot_hide` 가 그걸 잠근다.
+    """
+    if shutil.which("docker") is None:
+        # 🔴 **CI 에서는 건너뛰지 못한다.** 개발 기계엔 docker 가 없을 수 있지만 러너엔 있다.
+        # 이 줄이 없으면 시험이 **아무 때나 조용히 초록**이 되고, 그건 없느니만 못하다.
+        assert not os.environ.get("CI"), (
+            "CI 인데 docker 가 없다 — 이미지 시험이 조용히 건너뛰려 했다. "
+            "러너에 docker 가 있어야 이 시험이 의미를 갖는다."
+        )
+        pytest.skip("docker 가 없다 (개발 기계) — CI 에서는 위 단언이 막는다")
+
+    out = render(tmp_path / "svc", archetype="backend")
+    built = subprocess.run(
+        ["docker", "build", "-t", "copier-template-probe:test", "."],  # noqa: S607 — 절대경로 박기는 더 나쁘다: docker 는 CI 와 개발 기계에서 자리가 다르다
+        cwd=out,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert built.returncode == 0, f"이미지가 빌드되지 않는다:\n{built.stderr[-2000:]}"
+
+    # 🔴 빌드는 **파일이 만들어졌다**까지만 증명한다. 진입점이 실제로 도는지는 돌려봐야 안다.
+    ran = subprocess.run(
+        ["docker", "run", "--rm", "copier-template-probe:test"],  # noqa: S607 — 절대경로 박기는 더 나쁘다: docker 는 CI 와 개발 기계에서 자리가 다르다
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert ran.returncode == 0, f"이미지가 실행되지 않는다:\n{ran.stderr[-2000:]}"
+    assert ran.stdout.strip(), "돌긴 하는데 아무것도 안 냈다 — 진입점이 비어 있다"
+
+    # root 로 돌지 않는다는 것도 **문서가 아니라 실행**으로 확인한다.
+    whoami = subprocess.run(
+        ["docker", "run", "--rm", "--entrypoint", "id", "copier-template-probe:test", "-un"],  # noqa: S607 — 절대경로 박기는 더 나쁘다: docker 는 CI 와 개발 기계에서 자리가 다르다
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert whoami.stdout.strip() != "root", "컨테이너가 root 로 돈다"
+
+
 def test_floor_documents_are_present(rendered: Path) -> None:
     for name in ("AGENTS.md", "CONTRIBUTING.md", "CHANGELOG.md", "SECURITY.md", "LICENSE"):
         assert (rendered / name).is_file(), f"{name} 이 인스턴스에 없다 (바닥의 문서 묶음)"
