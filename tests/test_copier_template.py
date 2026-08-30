@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -187,6 +188,47 @@ def test_service_archetype_image_actually_builds_and_runs(tmp_path: Path) -> Non
         check=False,
     )
     assert whoami.stdout.strip() != "root", "컨테이너가 root 로 돈다"
+
+
+#: 🔴 **`{% %}` 는 jinja 뿐이다** — 우리 스택의 다른 어떤 도구도 안 쓴다.
+#: `{{ }}` 는 겹친다: Actions 식 `${{ github.sha }}` 와 `gh --template '{{range .}}'`(Go 템플릿).
+#: 그래서 `{{ }}` 는 **우리 답 변수 이름이 들어 있을 때만** 잡는다.
+#: (오탐이 신호를 묻는다 — 처음 판은 `session-start.sh` 의 Go 템플릿을 잡았다.)
+ANSWER_VARS = ("package_name", "project_name", "archetype", "license", "_copier")
+UNRENDERED = re.compile(r"\{%|" + r"\{\{[^}]*(?:" + "|".join(ANSWER_VARS) + r")[^}]*\}\}")
+
+
+@pytest.mark.parametrize("archetype", ["cli", "library", "backend", "data-ml"])
+def test_no_unrendered_jinja_survives_into_an_instance(tmp_path: Path, archetype: str) -> None:
+    """🔴 **템플릿 문법이 인스턴스에 글자 그대로 남으면 안 된다.**
+
+    실측(2026-08-30): `template/.github/workflows/ci.yml` 에 `{% if archetype == 'library' %}`
+    를 썼는데 **그대로 새어나왔다.** 그 파일은 `.jinja` 가 아니라 **복사만 된다**
+    (copier 의 `_templates_suffix` 기본값이 `.jinja` 다). 렌더된 YAML 은 문법이 깨지고,
+    **렌더해보지 않으면 인스턴스에서만 보인다.**
+
+    ⚠️ Actions 식 `${{ ... }}` 는 뺀다 — `$` 가 앞에 붙는다. 안 빼면 모든 워크플로가 걸린다.
+    """
+    out = render(tmp_path / f"jinja-{archetype}", archetype=archetype)
+    leaked = {}
+    for f in sorted(out.rglob("*")):
+        if not f.is_file() or ".git" in f.parts or f.suffix in {".lock", ".pyc"}:
+            continue
+        try:
+            body = f.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        hits = [
+            f"{i}: {line.strip()[:80]}"
+            for i, line in enumerate(body.splitlines(), 1)
+            if UNRENDERED.search(line)
+        ]
+        if hits:
+            leaked[f.relative_to(out).as_posix()] = hits
+    assert not leaked, (
+        f"렌더 안 된 템플릿 문법이 인스턴스에 남았다: {leaked}\n"
+        "그 파일 이름이 `.jinja` 로 끝나는지 봐라 — 안 끝나면 copier 는 복사만 한다."
+    )
 
 
 def test_floor_documents_are_present(rendered: Path) -> None:
