@@ -17,3 +17,8 @@ dist/
 
 # OS
 .DS_Store
+
+# Claude Code 의 **개인** 설정 — 커밋되는 것은 `.claude/settings.json` 뿐이다.
+# 🔴 Claude Code 는 **전역** git excludes 에만 넣는다(1차 문서) — 그건 **그 기계**를 지키지
+# **저장소**를 지키지 않는다. 다른 기계·다른 기여자에게는 안 따라간다.
+.claude/settings.local.json
