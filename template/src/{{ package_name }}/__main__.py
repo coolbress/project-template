@@ -4,16 +4,20 @@
 여기서 `uvicorn` 이나 `flask` 를 박으면 안 쓰는 프로젝트에 **스텁**이 남는다.
 
 `python -m <패키지>` 로 돌고, `Dockerfile` 의 `CMD` 가 이것을 부른다.
-서버를 붙일 땐 아래 `main()` 안을 바꾼다.
+서버를 붙일 땐 아래 `main()` 안을 바꾼다 — **로깅 설정은 그대로 두면 된다.**
 """
 
 from __future__ import annotations
 
+import logging
+
 from . import greet
+from ._logging import configure
 
 
 def main() -> None:
-    print(greet("world"))
+    configure()
+    logging.getLogger(__package__).info("started", extra={"greeting": greet("world")})
 
 
 if __name__ == "__main__":
