@@ -40,6 +40,13 @@ _exclude:
   # 🔴 파일을 지우는 게 아니라 **애초에 안 만든다** — 스텁이 남지 않는다.
   - "{% if archetype not in ['backend', 'data-ml'] %}.env.example{% endif %}"
   - "{% if archetype not in ['backend', 'data-ml'] %}tests/test_env_example.py{% endif %}"
+  # 🔴 `Dockerfile` 은 **파일 하나가 아니라 넷이 같이 온다** — 이미지 · 빌드 컨텍스트 제외 ·
+  # 진입점 모듈 · 그리고 **그것이 쓸 만한지 보는 시험**. 파일만 내면 스텁이다.
+  - "{% if archetype not in ['backend', 'data-ml'] %}Dockerfile{% endif %}"
+  - "{% if archetype not in ['backend', 'data-ml'] %}.dockerignore{% endif %}"
+  - "{% if archetype not in ['backend', 'data-ml'] %}tests/test_dockerfile.py{% endif %}"
+  # 진입점도 같이 간다 — `CMD` 가 부르는 모듈이다. 이미지를 안 받는 아키타입엔 쓸 데가 없다.
+  - "{% if archetype not in ['backend', 'data-ml'] %}src/{{ package_name }}/__main__.py{% endif %}"
 
 project_name:
   type: str
