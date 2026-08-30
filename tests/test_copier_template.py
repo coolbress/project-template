@@ -231,6 +231,29 @@ def test_no_unrendered_jinja_survives_into_an_instance(tmp_path: Path, archetype
     )
 
 
+def test_ci_runs_on_stacked_pull_requests(rendered: Path) -> None:
+    """🔴 **쌓은 PR 에도 CI 가 돌아야 한다.**
+
+    실측(2026-08-31 · `divcal` #31/#32): `pull_request: branches: [main]` 이면
+    base 가 다른 브랜치인 PR 에는 **검사가 하나도 안 붙는다.**
+
+    그게 우리가 만든 둘을 서로 싸우게 했다 —
+    `ci / diff-size`(400줄 상한)는 **PR 을 쌓으라고 밀고**, 이 필터는 **쌓은 PR 을 안 봤다.**
+    268줄짜리 조각을 **손으로 확인할 수밖에 없었다.**
+
+    ⚠️ `push:` 쪽 필터는 **그대로 둔다** — 거기는 `main` 만 보는 게 맞다.
+    """
+    ci = (rendered / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    block = ci.split("pull_request:", 1)
+    assert len(block) == 2, "pull_request 트리거가 없다"
+    after = block[1].lstrip("\n")
+    first = after.splitlines()[0] if after.splitlines() else ""
+    assert not first.strip().startswith("branches:"), (
+        "pull_request 에 branches 필터가 있다 — 쌓은 PR 에 CI 가 안 돈다. "
+        "diff-size 상한이 요구한 분할에 피드백이 없어진다."
+    )
+
+
 def test_floor_documents_are_present(rendered: Path) -> None:
     for name in ("AGENTS.md", "CONTRIBUTING.md", "CHANGELOG.md", "SECURITY.md", "LICENSE"):
         assert (rendered / name).is_file(), f"{name} 이 인스턴스에 없다 (바닥의 문서 묶음)"
