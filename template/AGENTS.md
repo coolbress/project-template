@@ -12,9 +12,10 @@ uv sync --locked          # 락파일과 어긋나면 실패한다
 uv run ruff check . && uv run ruff format --check .
 uv run mypy .
 uv run pytest
+uv build          # 🔴 룰셋이 `ci / build` 를 필수로 요구한다
 ```
 
-CI 는 이 넷을 **각각 별도 검사**로 돌린다. 로컬에서 통과시키고 PR 을 연다.
+CI 는 이 다섯을 **각각 별도 검사**로 돌린다. 로컬에서 통과시키고 PR 을 연다.
 
 ## 읽고 시작해라
 
