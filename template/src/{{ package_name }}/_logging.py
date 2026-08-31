@@ -29,7 +29,6 @@ import os
 import sys
 from typing import Any
 
-
 #: `LogRecord` 가 원래 갖는 필드. 🔴 **두 포매터가 같은 목록을 봐야 한다** —
 #: 갈리면 한쪽에서만 문맥이 사라지고 그게 배포 뒤에 드러난다.
 _RESERVED = set(logging.LogRecord("", 0, "", 0, "", None, None).__dict__) | {"message", "asctime"}
