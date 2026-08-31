@@ -76,3 +76,44 @@ def test_configure_is_idempotent() -> None:
     n = len(logging.getLogger().handlers)
     mod.configure()
     assert len(logging.getLogger().handlers) == n
+
+
+def _mod():  # noqa: ANN202
+    return __import__(f"{_pkg()}._logging", fromlist=["_resolve", "TextFormatter"])
+
+
+def test_explicit_argument_wins(monkeypatch: pytest.MonkeyPatch) -> None:
+    """🔴 **명시가 이긴다.** 환경도 터미널도 이걸 못 뒤집는다."""
+    monkeypatch.setenv("LOG_FORMAT", "json")
+    assert _mod()._resolve("text") == "text"
+
+
+def test_env_beats_the_terminal(monkeypatch: pytest.MonkeyPatch) -> None:
+    """⚠️ `docker run -t` 면 **프로덕션에도 TTY** 가 붙는다 — 그때 이 줄이 벽이다."""
+    monkeypatch.setenv("LOG_FORMAT", "json")
+    monkeypatch.setattr("sys.stdout.isatty", lambda: True)
+    assert _mod()._resolve(None) == "json"
+
+
+def test_falls_back_to_the_terminal(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("LOG_FORMAT", raising=False)
+    monkeypatch.setattr("sys.stdout.isatty", lambda: True)
+    assert _mod()._resolve(None) == "text"
+    monkeypatch.setattr("sys.stdout.isatty", lambda: False)
+    assert _mod()._resolve(None) == "json"
+
+
+def test_a_wrong_value_is_refused_not_guessed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """🔴 오타를 조용히 기본값으로 넘기면 **틀린 형식이 프로덕션까지 간다.**"""
+    monkeypatch.setenv("LOG_FORMAT", "JSON ")
+    with pytest.raises(ValueError):
+        _mod()._resolve(None)
+
+
+def test_text_keeps_the_extra_context() -> None:
+    """🔴 터미널에서만 문맥이 사라지면 **개발 중에 안 보이던 것이 프로덕션에서만 보인다.**"""
+    rec = logging.LogRecord("p", logging.INFO, "f", 1, "hello", None, None)
+    rec.order_id = 7
+    line = _mod().TextFormatter().format(rec)
+    assert "hello" in line
+    assert "order_id=7" in line
