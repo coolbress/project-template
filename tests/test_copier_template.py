@@ -254,6 +254,33 @@ def test_ci_runs_on_stacked_pull_requests(rendered: Path) -> None:
     )
 
 
+def test_the_e2e_representatives_still_cover_every_archetype(tmp_path: Path) -> None:
+    """🔴 **대표를 고른 근거가 유지되는가.**
+
+    위 e2e 는 아키타입 넷 중 **둘만** 돌린다 — 파일 집합이 두 갈래뿐이라는 가정 위에서다.
+    조건이 하나라도 갈라지면(예: `library` 만 받는 파일이 생기면) **그 갈래는 e2e 를 안 거친다.**
+    가정을 시험으로 붙들어 둔다.
+    """
+    sets = {}
+    for archetype in SERVABLE:
+        out = render(tmp_path / f"cover-{archetype}", archetype=archetype)
+        # 답에 따라 이름이 바뀌는 것(패키지 디렉터리)은 빼고 **집합**만 본다
+        sets[archetype] = frozenset(
+            f.relative_to(out).as_posix()
+            for f in out.rglob("*")
+            if f.is_file() and ".git" not in f.parts and "src/" not in f.relative_to(out).as_posix()
+        )
+    groups: dict[frozenset[str], list[str]] = {}
+    for archetype, files in sets.items():
+        groups.setdefault(files, []).append(archetype)
+    assert len(groups) == len(E2E_ARCHETYPES), (
+        f"파일 집합이 {len(groups)}갈래인데 e2e 는 {len(E2E_ARCHETYPES)}개만 돌린다: "
+        f"{[sorted(v) for v in groups.values()]}"
+    )
+    for reps in groups.values():
+        assert any(r in E2E_ARCHETYPES for r in reps), f"{reps} 갈래에 대표가 없다"
+
+
 def test_floor_documents_are_present(rendered: Path) -> None:
     for name in ("AGENTS.md", "CONTRIBUTING.md", "CHANGELOG.md", "SECURITY.md", "LICENSE"):
         assert (rendered / name).is_file(), f"{name} 이 인스턴스에 없다 (바닥의 문서 묶음)"
@@ -368,15 +395,30 @@ def test_impossible_names_are_refused_before_anything_is_written(
 # ── 끝에서 끝까지 ────────────────────────────────────────────
 
 
+#: 🔴 **파일 집합이 갈리는 대표 아키타입.** `_exclude` 의 조건이 전부
+#: `archetype not in ['backend', 'data-ml']` 이므로 파일 집합은 **두 갈래**뿐이다 —
+#: {cli, library} 와 {backend, data-ml}. 대표 하나씩만 돌리면 커버리지는 같고 시간은 절반이다.
+#: ⚠️ 이 가정은 아래 `test_the_e2e_representatives_still_cover_every_archetype` 가 지킨다.
+E2E_ARCHETYPES = ("cli", "backend")
+
+
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv 가 없다")
-def test_generated_project_passes_its_own_checks(tmp_path: Path) -> None:
+@pytest.mark.parametrize("archetype", E2E_ARCHETYPES)
+def test_generated_project_passes_its_own_checks(tmp_path: Path, archetype: str) -> None:
     """🔵 **이 시험이 이 파일에서 제일 값어치가 크다.**
 
     렌더가 됐다는 것과 **생성된 저장소가 초록이라는 것**은 다른 문장이다. 특히 `uv.lock` 은
     프로젝트 이름을 담고 있어서, 어긋나면 `uv sync --locked` 가 **새 저장소의 첫 PR 부터**
     실패한다 — 벽이 서 있는 저장소라 그대로 잠긴다. 여기서 잡지 않으면 거기서 알게 된다.
+
+    🔴 **아키타입마다 돈다 (2026-08-31 정정).** 전판은 기본값(`cli`)으로만 렌더했다 —
+    그래서 **`backend` 에만 배달되는 파일**(`_logging.py` · `Dockerfile` · `.env.example` ·
+    그 시험들)은 **한 번도 이 검사를 통과한 적이 없었다.**
+    실측으로 셋이 한꺼번에 터졌다: `.env.example` 에 `LOG_FORMAT` 이 없어 `pytest` 빨간불 ·
+    `# noqa: ANN202` 가 `RUF100` · `_mod()` 무타입으로 `mypy --strict` 7건.
+    **검사가 있는 것과 그 검사가 무엇을 보는가는 다른 문장이다.**
     """
-    out = render(tmp_path / "e2e", project_name="my.app")
+    out = render(tmp_path / f"e2e-{archetype}", project_name="my.app", archetype=archetype)
     for step in (
         ["uv", "sync", "--locked", "--quiet"],
         ["uv", "run", "--quiet", "ruff", "check", "."],

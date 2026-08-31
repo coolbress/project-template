@@ -63,7 +63,7 @@ def test_the_entrypoint_actually_exists_in_this_package() -> None:
     빌드만 보는 검사로는 안 잡힌다.
     """
     pkg = _package_name()
-    cmd = re.search(r'^CMD\s+\[(.+)\]', _text(), re.M)
+    cmd = re.search(r"^CMD\s+\[(.+)\]", _text(), re.M)
     assert cmd, "CMD 가 없다 — 이 이미지는 무엇을 돌리는지 말하지 않는다"
     parts = [p.strip().strip('"') for p in cmd.group(1).split(",")]
     assert parts[:2] == ["python", "-m"], f"진입점 형태가 다르다: {parts}"
