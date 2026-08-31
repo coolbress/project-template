@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -72,4 +73,49 @@ def test_hook_output_stays_short() -> None:
     assert len(lines) <= MAX_LINES, (
         f"세션 시작 출력이 {len(lines)}줄이다 (상한 {MAX_LINES}). "
         "매 세션 지불하는 컨텍스트다 — 늘리려면 근거를 적어라."
+    )
+
+
+NOT_A_CHECK = frozenset({"uv sync"})
+
+#: 🔴 **서브커맨드까지 본다.** 첫 판은 `uv (?:run )?[a-z]+` 이라 `uv run ruff check` 와
+#: `uv run ruff format --check` 가 **둘 다 `uv run ruff` 로 줄었다** — 문서가 둘 중 하나만
+#: 빠뜨려도 통과했다. **드리프트를 막으려고 만든 시험에 드리프트 구멍이 있었다.**
+#: (2026-08-31 · `codex review` 가 물었다 — 제3자 리뷰가 처음으로 값을 냈다.)
+#: ⚠️ 플래그와 경로는 여전히 버린다 — `README` 는 `ruff format .`, 훅은 `ruff format --check .` 이고
+#: 꼬리까지 맞추라고 하면 **문서가 서로를 베끼게 된다.**
+CHECK_HEAD = r"uv (?:run )?[a-z]+(?: (?:check|format))?"
+
+#: 같은 목록을 들고 있는 문서들. 훅과 어긋나면 사람이 통과시키고 PR 에서 빨간불을 본다.
+DOCS_THAT_LIST_CHECKS = ("AGENTS.md", "CONTRIBUTING.md", "README.md")
+
+
+def _hook_checks() -> set[str]:
+    """훅이 찍는 검사 명령의 **머리**. 🔴 훅이 정본이다 — stdout 은 무시할 수 없다.
+
+    `CHECK_HEAD` 가 서브커맨드까지 본다 — 그게 없으면 `ruff check` 와 `ruff format` 이 안 갈린다.
+    """
+    found = re.findall(CHECK_HEAD, HOOK.read_text(encoding="utf-8"))
+    return set(found) - NOT_A_CHECK
+
+
+def test_the_docs_list_every_check_the_hook_lists() -> None:
+    """🔬 실측 2026-08-31 — `AGENTS.md` 와 `CONTRIBUTING.md` 에 `uv build` 가 없었다.
+
+    룰셋은 `ci / build` 를 **필수**로 요구한다. 문서대로 넷만 통과시키고 PR 을 열면
+    보호된 `main` 에서 빨간불이고 `--admin` 도 안 통한다. 같은 목록이 네 군데 있었고
+    **둘이 조용히 갈렸다** — 문장으로 둔 규칙이 갈리는 그 형태다.
+    """
+    checks = _hook_checks()
+    assert checks, "훅에서 검사 명령을 하나도 못 찾았다 — 이 시험이 헛돈다"
+
+    missing = {
+        doc: sorted(c for c in checks if c not in (ROOT / doc).read_text(encoding="utf-8"))
+        for doc in DOCS_THAT_LIST_CHECKS
+    }
+    broken = {doc: gap for doc, gap in missing.items() if gap}
+
+    assert not broken, (
+        f"훅이 찍는 검사를 문서가 안 적었다: {broken}\n"
+        "그대로 따르면 로컬은 초록인데 PR 이 빨간불이다. 문서를 고치거나 훅을 고쳐라."
     )

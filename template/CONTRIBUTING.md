@@ -60,6 +60,7 @@ uv sync --locked
 uv run ruff check . && uv run ruff format --check .
 uv run mypy .
 uv run pytest
+uv build          # 🔴 룰셋이 `ci / build` 를 필수로 요구한다
 ```
 
 CI 는 이것들을 각각 별도 검사로 돌리고 **시크릿 탐지·CodeQL 도 함께** 돈다.
