@@ -38,6 +38,8 @@ CI 는 이 다섯을 **각각 별도 검사**로 돌린다. 로컬에서 통과�
 - **PR 제목은 `type(scope): 요약`** — `ci / pr-title` 이 막는다. 타입은 표준 11종뿐이고
   🔴 **새 타입을 만들지 마라.** 남는 의미는 scope 로 쓴다(`docs(research):`·`refactor(layout):`)
 - CI 로직은 여기 없다 — `coolbress/workflows` 에 있고 `ci.yml` 이 SHA 로 핀한다.
+- **벽이 되돌려주지 못하는 것은 `.claude/settings.json` 의 deny 가 막는다** — force push · `rm -rf` · `.env` 읽기.
+  룰셋은 산출물의 *인수*를 강제하지 로컬 실행 피해를 막지 않는다. `.env` 값이 필요하면 사람에게 묻는다
 
 ## 기획할 때 (`/grill-with-docs`)
 
